@@ -1,0 +1,34 @@
+import sqlite3
+
+def transfer_funds(sender_id, recipient_id, amount):
+    conn = sqlite3.connect('bank.db')
+    cursor = conn.cursor()
+
+    try:
+        conn.execute('BEGIN TRANSACTION')
+
+        cursor.execute('SELECT balance FROM accounts WHERE id = ?', (sender_id,))
+        sender_balance = cursor.fetchone()[0]
+        if sender_balance < amount:
+            raise ValueError('Insufficient funds')
+
+        new_sender_balance = sender_balance - amount
+        cursor.execute('UPDATE accounts SET balance = ? WHERE id = ?', (new_sender_balance, sender_id))
+
+        cursor.execute('SELECT balance FROM accounts WHERE id = ?', (recipient_id,))
+        recipient_balance = cursor.fetchone()[0]
+        new_recipient_balance = recipient_balance + amount
+        cursor.execute('UPDATE accounts SET balance = ? WHERE id = ?', (new_recipient_balance, recipient_id))
+
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        print(f"Transaction failed: {e}")
+    finally:
+        conn.close()
+
+if __name__ == "__main__":
+    sender_id = 123
+    recipient_id = 456
+    amount = 100
+    transfer_funds(sender_id, recipient_id, amount)
